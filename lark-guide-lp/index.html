@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Googleフォーム × Lark 通知設定ガイド</title>
+    <meta name="description" content="Googleフォームの回答をLarkに自動通知するための設定ガイドとGASコードです。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="container">
+            <div class="logo">Lark Notification Guide</div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1 class="hero-title">Googleフォームの回答を<br><span class="gradient-text">Larkへ即時通知</span></h1>
+                <p class="hero-subtitle">フォームへの問い合わせを見逃さない。GASコピペだけで完結する自動化設定ガイド。</p>
+                <a href="#code-section" class="btn btn-primary">コードを取得する</a>
+            </div>
+        </section>
+
+        <section id="code-section" class="section code-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>GAS Source Code</h2>
+                    <p>以下のコードをGoogle Apps Scriptエディタに貼り付けてください。</p>
+                </div>
+                
+                <div class="code-card">
+                    <div class="code-header">
+                        <span class="file-name">Code.gs</span>
+                        <button id="copy-btn" class="copy-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy Code
+                        </button>
+                    </div>
+                    <pre><code id="gas-code">function onFormSubmit(e) {
+  // ①ここにLarkのWebhook URLを設定してください
+  var LARK_WEBHOOK_URL = 'YOUR_LARK_WEBHOOK_URL'; 
+
+  // フォームの回答を取得します
+  var formResponse = e.response;
+  var itemResponses = formResponse.getItemResponses();
+
+  var messageText = "【Googleフォームから新規問い合わせ】\n\n";
+
+  // 回答内容を整形してメッセージ本文を作成します
+  for (var i = 0; i < itemResponses.length; i++) {
+    var itemResponse = itemResponses[i];
+    var questionTitle = itemResponse.getItem().getTitle();
+    var answer = itemResponse.getResponse();
+    messageText += questionTitle + ": " + answer + "\n";
+  }
+
+  // Lark APIに送信するペイロード（JSONデータ）を準備します
+  var payload = {
+    "msg_type": "text",
+    "content": {
+      "text": messageText
+    }
+  };
+
+  // HTTPリクエストのオプションを設定します
+  var options = {
+    'method' : 'post',
+    'contentType' : 'application/json',
+    'payload' : JSON.stringify(payload)
+  };
+
+  // LarkのWebhook URLにデータを送信します
+  UrlFetchApp.fetch(LARK_WEBHOOK_URL, options);
+}</code></pre>
+                </div>
+                <div class="alert-box warning">
+                    <p>⚠️ <strong>注意:</strong> <code>YOUR_LARK_WEBHOOK_URL</code> は必ずご自身のWebhook URLに書き換えてください。</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section steps-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Setup Guide</h2>
+                    <p>3ステップで設定完了。特別な知識は必要ありません。</p>
+                </div>
+
+                <div class="steps-grid">
+                    <!-- Step 1 -->
+                    <div class="step-card">
+                        <div class="step-number">01</div>
+                        <h3>Lark Webhookの取得</h3>
+                        <p class="step-desc">通知を受け取るLarkグループのボット設定からURLを取得します。</p>
+                        <ul class="step-list">
+                            <li>通知したいチャットグループの設定を開く</li>
+                            <li>「ボット」タブ → 「ボットを追加」</li>
+                            <li>「カスタムボット」を作成</li>
+                            <li>表示される<strong>Webhook URL</strong>をコピー</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="step-card">
+                        <div class="step-number">02</div>
+                        <h3>GASへのコード貼り付け</h3>
+                        <p class="step-desc">Googleフォームと連携するスプレッドシートにコードを設定します。</p>
+                        <ul class="step-list">
+                            <li>回答用スプレッドシートを開く</li>
+                            <li>拡張機能 > Apps Script を選択</li>
+                            <li>エディタに上のコードを貼り付け</li>
+                            <li>URL部分を書き換えて保存</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="step-card">
+                        <div class="step-number">03</div>
+                        <h3>トリガーの設定</h3>
+                        <p class="step-desc">フォーム送信時に自動実行されるように設定します。</p>
+                        <ul class="step-list">
+                            <li>左メニューの時計アイコン(トリガー)をクリック</li>
+                            <li>「トリガーを追加」ボタンをクリック</li>
+                            <li>イベントの発生元: <strong>スプレッドシートから</strong></li>
+                            <li>イベントの種類: <strong>フォーム送信時</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Lark Notification Guide. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

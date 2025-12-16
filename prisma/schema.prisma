@@ -1,0 +1,55 @@
+generator client_py {
+  provider = "prisma-client-py"
+  interface = "asyncio"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id    int    @id @default(autoincrement())
+  email String @unique
+  name  String?
+  source String?
+  lineUserId String? @unique
+  lineLinkedAt DateTime?
+  createdAt DateTime @default(now())
+  
+  payments Payment[]
+  feedbacks Feedback[]
+  rewards Reward[]
+}
+
+model Payment {
+  id int @id @default(autoincrement())
+  leadId int
+  amount int
+  currency String
+  stripeChargeId String
+  status String
+  createdAt DateTime @default(now())
+  
+  lead Lead @relation(fields: [leadId], references: [id])
+}
+
+model Feedback {
+  id int @id @default(autoincrement())
+  leadId int
+  rating int
+  comment String?
+  createdAt DateTime @default(now())
+  
+  lead Lead @relation(fields: [leadId], references: [id])
+}
+
+model Reward {
+  id int @id @default(autoincrement())
+  leadId int
+  points int
+  reason String
+  createdAt DateTime @default(now())
+  
+  lead Lead @relation(fields: [leadId], references: [id])
+}

@@ -1,0 +1,368 @@
+// packages/database/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// User Management
+// ========================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  
+  // Auth
+  emailVerified DateTime?
+  passwordHash  String?
+  
+  // Plan
+  plan              Plan      @default(FREE)
+  stripeCustomerId  String?   @unique
+  stripeSubscriptionId String? @unique
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  
+  // Limits
+  lpCount           Int       @default(0)
+  monthlyViews      Int       @default(0)
+  leadCount         Int       @default(0)
+  viewsResetAt      DateTime  @default(now())
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  landingPages  LandingPage[]
+  products      Product[]
+  leads         Lead[]
+  apiKeys       ApiKey[]
+  
+  @@index([email])
+  @@index([stripeCustomerId])
+  @@map("users")
+}
+
+enum Plan {
+  FREE
+  STARTER
+  BUSINESS
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+// NextAuth Tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ========================================
+// LP Management
+// ========================================
+
+model LandingPage {
+  id    String @id @default(cuid())
+  userId String
+  
+  // Basic Info
+  slug          String  @unique
+  title         String
+  status        PageStatus @default(DRAFT)
+  
+  // User Input
+  industry       String
+  productName    String
+  mainBenefit    String  @db.Text
+  targetAudience Json    // { age, gender, occupation, etc. }
+  designTheme    String
+  
+  // AI Generated Content
+  catchCopy      String?
+  bodyCopy       Json?   // { intro, problem, solution, benefit, cta }
+  ctaText        String?
+  ogImageUrl     String?
+  
+  // Form Settings
+  formFields     Json    // [ { name, type, required, options? }, ... ]
+  
+  // Incentive
+  incentiveName  String?
+  incentiveFile  String? // Storage URL
+  incentiveDescription String? @db.Text
+  
+  // Stats
+  views          Int     @default(0)
+  uniqueViews    Int     @default(0)
+  conversions    Int     @default(0)
+  
+  // SEO
+  metaTitle      String?
+  metaDescription String? @db.Text
+  
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads          Lead[]
+  analytics      PageAnalytics[]
+  
+  @@index([userId])
+  @@index([slug])
+  @@index([status])
+  @@map("landing_pages")
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model PageAnalytics {
+  id             String   @id @default(cuid())
+  lpId           String
+  
+  date           DateTime @db.Date
+  views          Int      @default(0)
+  uniqueViews    Int      @default(0)
+  conversions    Int      @default(0)
+  
+  // Details
+  deviceBreakdown Json   // { mobile, desktop, tablet }
+  sourceBreakdown Json   // { direct, search, social, referral }
+  
+  createdAt      DateTime @default(now())
+  
+  landingPage    LandingPage @relation(fields: [lpId], references: [id], onDelete: Cascade)
+  
+  @@unique([lpId, date])
+  @@index([lpId])
+  @@index([date])
+  @@map("page_analytics")
+}
+
+// ========================================
+// Lead Management
+// ========================================
+
+model Lead {
+  id            String   @id @default(cuid())
+  userId        String
+  lpId          String
+  
+  // Basic Info
+  name          String
+  email         String
+  phone         String?
+  
+  // Custom Fields
+  customFields  Json     // { field1: value1, field2: value2, ... }
+  
+  // Tracking
+  source        String?  // utm_source
+  medium        String?  // utm_medium
+  campaign      String?  // utm_campaign
+  userAgent     String?
+  ipAddress     String?
+  country       String?
+  city          String?
+  
+  // Status
+  tags          String[] @default([])
+  notes         String?  @db.Text
+  
+  createdAt     DateTime @default(now())
+  
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  landingPage   LandingPage  @relation(fields: [lpId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([lpId])
+  @@index([email])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+// ========================================
+// Product & Payment Management
+// ========================================
+
+model Product {
+  id            String   @id @default(cuid())
+  userId        String
+  
+  // Basic Info
+  name          String
+  description   String   @db.Text
+  price         Int      // YEN (Integer)
+  currency      String   @default("JPY")
+  
+  // Media
+  images        String[] @default([])
+  
+  // Sales Limits
+  stockLimit    Int?
+  stockSold     Int      @default(0)
+  salesEndDate  DateTime?
+  
+  // Payment Settings
+  paymentProvider  PaymentProvider
+  
+  // Stripe
+  stripeProductId  String?
+  stripePriceId    String?
+  
+  // PayPal
+  paypalPlanId     String?
+  
+  // Terms
+  termsUrl      String?
+  
+  // Status
+  isActive      Boolean  @default(true)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders        Order[]
+  
+  @@index([userId])
+  @@index([isActive])
+  @@map("products")
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  productId     String
+  
+  // Customer Info
+  customerEmail String
+  customerName  String
+  customerPhone String?
+  
+  // Payment Info
+  amount        Int
+  currency      String
+  
+  // Payment Provider Info
+  paymentProvider PaymentProvider
+  paymentId       String  @unique
+  status          OrderStatus @default(PENDING)
+  
+  // Metadata
+  metadata      Json?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  product       Product  @relation(fields: [productId], references: [id])
+  
+  @@index([productId])
+  @@index([customerEmail])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+// ========================================
+// API Management
+// ========================================
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  
+  name      String
+  key       String   @unique
+  lastUsedAt DateTime?
+  
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([key])
+  @@map("api_keys")
+}
+
+// ========================================
+// System Config
+// ========================================
+
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+  
+  updatedAt DateTime @updatedAt
+  
+  @@map("system_configs")
+}

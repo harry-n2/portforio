@@ -1,1 +1,40 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-navy-900 text-white font-sans overflow-x-hidden antialiased;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+
+  .text-gradient-gold {
+    @apply bg-gradient-to-br from-gold-200 via-gold-400 to-gold-600 bg-clip-text text-transparent;
+  }
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020617;
+  /* navy-900 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  /* navy-700 */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D4AF37;
+  /* gold-400 */
+}

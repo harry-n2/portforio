@@ -1,48 +1,28 @@
-import { useState } from 'react';
-import LPGenerator from './pages/LPGenerator';
-import BookingSystem from './pages/BookingSystem';
-import FeedbackForm from './pages/FeedbackForm';
-import ContentGenerator from './pages/ContentGenerator';
+import React from 'react';
+import { PremiumLayout } from './components/Layout/PremiumLayout';
+import { Hero } from './components/UI/Hero';
+import { PainPoints } from './components/UI/PainPoints';
+import { Solution } from './components/UI/Solution';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'lp' | 'booking' | 'feedback' | 'content'>('lp');
-
   return (
-    <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
-      {/* Navigation Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="text-xl font-bold text-indigo-800">極ゼロ１集客</div>
-          <nav className="flex space-x-2">
-            {[
-              { id: 'lp', label: 'LP生成' },
-              { id: 'booking', label: '予約管理' },
-              { id: 'feedback', label: 'フィードバック' },
-              { id: 'content', label: 'コンテンツ生成' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id
-                  ? 'bg-indigo-100 text-indigo-700'
-                  : 'text-gray-500 hover:text-gray-700'
-                  }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </header>
+    <PremiumLayout>
+      <Hero />
+      <PainPoints />
+      <Solution />
 
-      {/* Main Content */}
-      <main className="py-10">
-        {activeTab === 'lp' && <LPGenerator />}
-        {activeTab === 'booking' && <BookingSystem />}
-        {activeTab === 'feedback' && <FeedbackForm />}
-        {activeTab === 'content' && <ContentGenerator />}
-      </main>
-    </div>
+      {/* Contact / Final CTA Section */}
+      <section id="contact" className="py-32 flex flex-col items-center justify-center text-center px-6">
+        <h2 className="text-3xl md:text-4xl font-serif text-white mb-6">
+          Ready to elevate your business?
+        </h2>
+        <p className="text-white/50 max-w-xl mb-10">
+          Join the leaders who have already automated their way to success.
+        </p>
+        <div className="p-[1px] rounded-full bg-gradient-to-r from-transparent via-gold-400 to-transparent w-full max-w-sm" />
+      </section>
+
+    </PremiumLayout>
   );
 }
 

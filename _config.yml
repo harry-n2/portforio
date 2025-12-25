@@ -1,0 +1,11 @@
+# Jekyll configuration for GitHub Pages
+exclude:
+  - node_modules/
+  - frontend/
+  - .git/
+  - .env
+  - README.md
+  - package*.json
+  - prisma/
+  - kiwami01-mvp/
+  - lark-guide-lp/
